@@ -1,0 +1,1433 @@
+<!DOCTYPE html><html lang="ar" dir="rtl"><head>    <meta charset="UTF-8">    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title id="appBrowserTitle">عارف - تطبيق المسابقات التفاعلي</title>
+    <!--Favicon Dynamic Link-->
+    <link id="dynamicFavicon" rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/layer-group.svg">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">        <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandBg: 'var(--bg-color, #0E2A47)',
+                        brandCard: 'var(--card-color, #1E4C7C)',
+                        brandAccent: 'var(--accent-color, #FF810B)',
+                        brandNeutral: 'var(--neutral-color, #F2EFE8)',
+                        brandOption: 'var(--option-color, rgba(255, 255, 255, 0.08))',
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg-color: #0E2A47;
+            --card-color: #25588C;
+            --question-box-color: rgba(0, 0, 0, 0.25);
+            --media-bg-color: rgba(255, 255, 255, 0.12);
+            --accent-color: #FF810B;
+            --neutral-color: #F2EFE8;
+            --title-color: #FFFFFF;
+            --subtitle-color: #A0AEC0;
+            --subtitle-font: 'Cairo';
+            --question-color: #FFFFFF;
+            --option-color: rgba(255, 255, 255, 0.12);
+            --option-border: rgba(255, 255, 255, 0.25);
+        }
+
+        html {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        html::-webkit-scrollbar {
+            display: none;
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--neutral-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+            user-select: none;
+            min-height: 100vh;
+        }
+
+        #appMainTitle { color: var(--title-color); }
+        #appSubTitle { 
+            color: var(--subtitle-color); 
+            font-family: var(--subtitle-font), 'Cairo', sans-serif; 
+        }
+        #questionText { color: var(--question-color); }
+
+        .glass-card {
+            background-color: var(--card-color);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .glass-option {
+            background-color: var(--option-color);
+            border: 1px solid var(--option-border, rgba(255, 255, 255, 0.15));
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-option:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .option-letter {
+            background: rgba(0, 0, 0, 0.25);
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: 900;
+            flex-shrink: 0;
+            line-height: 1;
+        }
+        .option-letter span {
+            display: inline-block;
+            transform: translateY(-2px);
+        }
+
+        .quiz-layout-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .quiz-media-column {
+            width: 100%;
+            height: 260px;
+            order: 1;
+        }
+        .quiz-options-column {
+            width: 100%;
+            order: 2;
+        }
+
+        @media (min-width: 768px) {
+            .quiz-layout-grid {
+                display: flex;
+                flex-direction: row;
+                align-items: stretch;
+                gap: 1.75rem;
+            }
+            .quiz-media-column {
+                width: 410px;
+                height: 310px !important;
+                flex-shrink: 0;
+                order: 1;
+            }
+            .quiz-options-column {
+                flex: 1;
+                order: 2;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            }
+        }
+
+        .question-card-anim { 
+            opacity: 1;
+            transform: translateY(0);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .question-card-anim.fade-out {
+            opacity: 0;
+            transform: translateY(-15px);
+        }
+
+        .media-item-fit { 
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            object-position: center; 
+            border-radius: 0.85rem; 
+        }
+
+        /* Puzzle Styles */
+        .puzzle-slot {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px dashed rgba(255, 255, 255, 0.25);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        .puzzle-slot.drag-over {
+            border-color: var(--accent-color);
+            background: rgba(255, 129, 11, 0.2);
+        }
+        .puzzle-piece {
+            cursor: grab;
+            border-radius: 0.35rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            touch-action: none;
+        }
+        .puzzle-piece:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+        .puzzle-piece.selected-piece {
+            outline: 3px solid var(--accent-color);
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between p-3 sm:p-5 md:p-6">
+
+    <!-- مشغل الموسيقى الخفية -->
+    <audio id="bgMusicPlayer" loop></audio>
+
+    <!-- Header / Brand Section -->
+    <header class="max-w-4xl mx-auto w-full flex justify-between items-center mb-3 px-3 relative z-10">
+        <div class="flex flex-col text-right pr-2">
+            <h1 id="appMainTitle" class="text-3xl sm:text-4xl font-black tracking-wider text-white select-none drop-shadow-md leading-none">عارف</h1>
+            <span id="appSubTitle" class="text-xs sm:text-sm font-bold opacity-90 tracking-wide mt-1">سفر وسياحه</span>
+        </div>
+
+        <div id="topControlsGroup" class="flex items-center gap-2 pl-2">
+            <button id="categoryBadgeBtn" onclick="openCategoryModal()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-3.5 py-1.5 rounded-full border border-white/15 transition-all group text-xs sm:text-sm shadow-sm">
+                <i id="currentCategoryIcon" class="fa-solid fa-layer-group" style="color: var(--accent-color);"></i>
+                <span id="currentCategoryText" class="font-bold tracking-wide">جميع المجالات</span>
+                <i class="fa-solid fa-chevron-down text-[10px] opacity-60 group-hover:translate-y-0.5 transition-transform"></i>
+            </button>
+            <button onclick="toggleAudio()" id="audioBtn" title="الصوت والموسيقى" class="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:border-white/40 transition text-xs">
+                <i class="fa-solid fa-volume-high"></i>
+            </button>
+            <button onclick="toggleFocusMode()" id="focusBtn" title="عرض صافي للبث" class="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:border-white/40 transition text-xs">
+                <i class="fa-solid fa-eye"></i>
+            </button>
+            <button onclick="toggleFullscreen()" title="ملء الشاشة" class="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:border-white/40 transition text-xs">
+                <i class="fa-solid fa-expand"></i>
+            </button>
+            <button id="adminBtn" onclick="verifyAdminAccess()" title="لوحة التحكم" class="w-9 h-9 rounded-full glass-card flex items-center justify-center hover:border-white/40 transition text-xs">
+                <i class="fa-solid fa-sliders" style="color: var(--accent-color);"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Quiz Area -->
+    <main class="max-w-4xl mx-auto w-full flex-1 flex flex-col justify-center relative z-10 my-auto px-1">
+        
+        <!-- صندوق الأسئلة الرئيسي -->
+        <div id="questionCard" class="glass-card question-card-anim rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-9 mb-3.5 text-center relative overflow-hidden transition-all duration-300">
+            <div class="absolute top-0 right-0 left-0 h-1.5 bg-black/20">
+                <div id="quizProgressBar" class="h-full transition-all duration-500" style="background-color: var(--accent-color); width: 0%;"></div>
+            </div>
+
+            <!-- صندوق السؤال الداخلي -->
+            <div class="mb-4 pt-1 flex flex-col gap-3">
+                <div id="questionBoxContainer" class="backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/15 shadow-inner flex flex-col gap-3 transition-all mt-1" style="background-color: var(--question-box-color, rgba(0, 0, 0, 0.25));">
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex items-center gap-3.5 flex-1 text-right">
+                            <span id="qNumberBadge" class="flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-black text-base text-white border border-white/20 shadow-md" style="background-color: var(--accent-color);">1</span>
+                            <h2 id="questionText" class="text-base sm:text-lg md:text-xl font-bold leading-relaxed text-right drop-shadow-sm flex-1">جاري تحميل الأسئلة...</h2>
+                        </div>
+
+                        <!-- عداد الوقت الزمني -->
+                        <div id="timerContainer" class="flex items-center gap-2 px-3.5 py-1 rounded-full glass-card border border-white/10 shadow-sm flex-shrink-0 mr-2">
+                            <i class="fa-regular fa-clock text-sm" style="color: var(--accent-color);"></i>
+                            <span id="timerText" class="font-black text-base font-mono">15</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- التخطيط المرن: إطار الصورة يميناً والخيارات يساراً -->
+            <div class="quiz-layout-grid flex-1 flex items-stretch">
+                <!-- 1. إطار الصورة / الوسائط في جهة اليمين -->
+                <div id="quizMediaColumn" class="quiz-media-column hidden flex-col items-center justify-center rounded-2xl p-2.5 border border-white/20 overflow-hidden transition-all shadow-inner" style="background-color: var(--media-bg-color, rgba(255, 255, 255, 0.12));">
+                    <div id="questionMediaDisplay" class="w-full h-full flex justify-center items-center overflow-hidden rounded-xl"></div>
+                </div>
+
+                <!-- 2. صندوق الخيارات في جهة اليسار -->
+                <div class="quiz-options-column w-full flex flex-col justify-center">
+                    <div id="optionsContainer" class="grid grid-cols-1 gap-3 sm:gap-3.5 w-full"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- شريط التحكم السفلي -->
+        <div id="bottomControlBar" class="flex justify-between items-center mt-1 px-1">
+            <button onclick="prevQuestion()" class="px-4 py-2 rounded-xl glass-card hover:bg-white/10 font-bold text-xs sm:text-sm flex items-center gap-2 transition disabled:opacity-30 disabled:pointer-events-none" id="prevBtn">
+                <i class="fa-solid fa-arrow-right"></i> السابق
+            </button>
+            <button onclick="resetCurrentQuestion()" class="px-3.5 py-2 rounded-xl glass-card hover:bg-white/10 text-xs sm:text-sm font-bold transition flex items-center gap-1.5 opacity-80 hover:opacity-100">
+                <i class="fa-solid fa-rotate-right"></i> إعادة السؤال
+            </button>
+            <button onclick="transitionToNext()" class="px-4 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 transition text-white shadow-lg" style="background-color: var(--accent-color);" id="nextBtn">
+                التالي <i class="fa-solid fa-arrow-left"></i>
+            </button>
+        </div>
+    </main>
+
+    <footer id="appFooter" class="max-w-4xl mx-auto w-full text-center text-[10px] sm:text-xs opacity-50 mt-3 relative z-10 px-1">
+        مصمم للبث المباشر وإنتاج المحتوى الرقمي &bull; عارف
+    </footer>
+
+    <!-- Category Modal -->
+    <div id="categoryModal" class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="glass-card rounded-3xl max-w-md w-full p-6 text-right border border-white/20">
+            <div class="flex justify-between items-center mb-5 pb-3 border-b border-white/10">
+                <h3 class="text-xl font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group" style="color: var(--accent-color);"></i> اختر المجال
+                </h3>
+                <button onclick="closeCategoryModal()" class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="categoryList" class="space-y-2 max-h-80 overflow-y-auto pr-1"></div>
+        </div>
+    </div>
+
+    <!-- Admin Modal -->
+    <div id="adminModal" class="fixed inset-0 bg-black/80 backdrop-blur-lg flex items-center justify-center p-3 md:p-6 z-50 hidden">
+        <div class="glass-card rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col border border-white/20 overflow-hidden">
+            <div class="flex justify-between items-center p-5 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-sliders text-2xl" style="color: var(--accent-color);"></i>
+                    <h3 class="text-xl font-extrabold">لوحة التحكم والإعدادات الخاصة بك</h3>
+                </div>
+                <button onclick="closeAdminModal()" class="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="flex border-b border-white/10 bg-black/20 text-sm font-bold">
+                <button onclick="switchTab('settingsTab')" id="btn-settingsTab" class="flex-1 py-3 px-4 border-b-2 border-transparent text-center hover:bg-white/5 transition"><i class="fa-solid fa-gear ml-1.5"></i> الإعدادات</button>
+                <button onclick="switchTab('questionsTab')" id="btn-questionsTab" class="flex-1 py-3 px-4 border-b-2 border-transparent text-center hover:bg-white/5 transition"><i class="fa-solid fa-list-check ml-1.5"></i> الأسئلة</button>
+                <button onclick="switchTab('categoriesTab')" id="btn-categoriesTab" class="flex-1 py-3 px-4 border-b-2 border-transparent text-center hover:bg-white/5 transition"><i class="fa-solid fa-tags ml-1.5"></i> المجالات</button>
+                <button onclick="switchTab('themeTab')" id="btn-themeTab" class="flex-1 py-3 px-4 border-b-2 border-transparent text-center hover:bg-white/5 transition"><i class="fa-solid fa-palette ml-1.5"></i> المظهر</button>
+            </div>
+
+            <div class="p-5 overflow-y-auto flex-1 space-y-6">
+                <div id="settingsTab" class="tab-content space-y-4">
+                    <h4 class="font-bold text-sm opacity-80">الإعدادات العامة</h4>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">اسم التطبيق الرئيسي</label>
+                            <input type="text" id="appTitleInput" value="عارف" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">العنوان الفرعي</label>
+                            <input type="text" id="appSubTitleInput" value="سفر وسياحه" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">الوقت المحدد للسؤال (بالثواني)</label>
+                            <input type="number" id="timerDurationInput" value="15" min="5" max="300" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        </div>
+                        <button onclick="saveGeneralSettings()" class="w-full py-2 rounded-xl font-bold text-sm bg-amber-600 hover:bg-amber-500 transition text-white">حفظ الإعدادات العامة</button>
+                    </div>
+                </div>
+
+                <div id="questionsTab" class="tab-content space-y-4 hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="font-bold text-sm opacity-80">إضافة / تعديل سؤال</h4>
+                        <button onclick="resetQuestionForm()" class="text-xs opacity-70 hover:opacity-100 underline">تفريغ الحقول</button>
+                    </div>
+                    <input type="hidden" id="editQIndex" value="-1">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">اختر المجال</label>
+                            <select id="qCategorySelect" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400"></select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">نمط السؤال</label>
+                            <select id="qTypeSelect" onchange="onQuestionTypeChange()" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                                <option value="mcq">اختيار من متعدد (افتراضي)</option>
+                                <option value="puzzle">لغز تجميع الصورة (Puzzle)</option>
+                                <option value="truefalse">صح أو خطأ</option>
+                                <option value="fill">إكمال الفراغات (إجابة كتابية)</option>
+                                <option value="media_reveal">مشاهدة الوسائط ثم ظهور الإجابة</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">العنوان الفرعي الخاص بالسؤال</label>
+                            <input type="text" id="qSubtitleInput" placeholder="أدخل العنوان الفرعي..." class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">نص السؤال</label>
+                            <input type="text" id="qTextInput" placeholder="أدخل نص السؤال..." class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        </div>
+                        
+                        <div id="mediaSectionWrapper" class="bg-black/20 p-3 rounded-xl space-y-2">
+                            <label class="block text-xs font-bold opacity-70">الوسائط (روابط مباشرة لصور، فيديو mp4، أو صوت mp3/ogg)</label>
+                            <div id="mediaInputsContainer" class="space-y-2"></div>
+                            <button type="button" onclick="addMediaInputRow()" class="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1 mt-1"><i class="fa-solid fa-plus"></i> إضافة وسيط آخر</button>
+                        </div>
+
+                        <div id="puzzleSectionWrapper" class="bg-black/20 p-3 rounded-xl space-y-3 hidden">
+                            <label class="block text-xs font-bold opacity-70">إعدادات لغز التجميع (Puzzle)</label>
+                            <div>
+                                <label class="block text-[11px] opacity-80 mb-1">رابط صورة اللغز المباشر</label>
+                                <input type="text" id="puzzleImgUrlInput" placeholder="https://example.com/image.jpg" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] opacity-80 mb-1">أبعاد التفكيك</label>
+                                <select id="puzzleGridSizeSelect" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none">
+                                    <option value="2">2 × 2 (4 قطع)</option>
+                                    <option value="3" selected>3 × 3 (9 قطع)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="optionsSectionWrapper" class="bg-black/20 p-3 rounded-xl space-y-3">
+                            <div class="flex justify-between items-center">
+                                <label class="block text-xs font-bold opacity-70">خيارات الإجابة</label>
+                                <button type="button" onclick="addOptionInputRow()" class="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1"><i class="fa-solid fa-plus"></i> إضافة خيار آخر</button>
+                            </div>
+                            <div id="optionsInputsContainer" class="space-y-2"></div>
+                        </div>
+
+                        <div id="correctAnswerSection">
+                            <label class="block text-xs font-bold mb-1 opacity-70">الإجابة الصحيحة</label>
+                            <div id="correctAnswerInputContainer">
+                                <select id="qCorrectSelect" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400"></select>
+                            </div>
+                        </div>
+
+                        <button onclick="saveQuestion()" class="w-full py-2.5 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-500 transition text-white"><i class="fa-solid fa-plus ml-1"></i> حفظ السؤال</button>
+                    </div>
+                    <hr class="border-white/10 my-4">
+                    <h4 class="font-bold text-sm opacity-80 mb-2">قائمة الأسئلة الحالية</h4>
+                    <div id="adminQuestionsList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                </div>
+
+                <div id="categoriesTab" class="tab-content space-y-4 hidden">
+                    <div class="space-y-2 bg-black/20 p-3 rounded-xl">
+                        <h5 class="text-xs font-bold opacity-80">إضافة مجال جديد</h5>
+                        <div class="flex gap-2">
+                            <input type="text" id="newCatName" placeholder="اسم المجال..." class="flex-1 bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                            <input type="text" id="newCatIcon" placeholder="الرمز (fa-flask)" class="w-28 bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none" value="fa-folder">
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="newCatSubtitle" placeholder="العنوان الفرعي..." class="flex-1 bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                            <button onclick="addCategory()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-bold text-sm transition">إضافة</button>
+                        </div>
+                    </div>
+                    <h4 class="font-bold text-sm opacity-80 mt-4">المجالات المتاحة</h4>
+                    <div id="adminCategoriesList" class="space-y-2"></div>
+                </div>
+
+                <!-- تبويب المظهر المحدث مع إعدادات أيقونة الموقع Favicon -->
+                <div id="themeTab" class="tab-content space-y-4 hidden">
+                    <div class="bg-black/30 p-3.5 rounded-2xl border border-white/10 space-y-3">
+                        <h4 class="font-bold text-sm text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-globe"></i> أيقونة الموقع (Favicon)
+                        </h4>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">رابط أيقونة الموقع المباشر (صورة PNG / ICO)</label>
+                            <input type="text" id="faviconUrlInput" placeholder="https://example.com/icon.png" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="saveFaviconSettings()" class="flex-1 py-2 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-500 transition text-white">حفظ الأيقونة</button>
+                            <button onclick="removeFavicon()" class="px-4 py-2 rounded-xl font-bold text-xs bg-red-600/60 hover:bg-red-600 transition text-white">حذف الأيقونة</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/30 p-3.5 rounded-2xl border border-white/10 space-y-3">
+                        <h4 class="font-bold text-sm text-amber-400 flex items-center gap-2">
+                            <i class="fa-solid fa-music"></i> الموسيقى الخلفية للتطبيق
+                        </h4>
+                        <div>
+                            <label class="block text-xs font-bold mb-1 opacity-70">رابط ملف الصوت / الموسيقى المباشر (MP3 / OGG)</label>
+                            <input type="text" id="bgMusicUrlInput" placeholder="https://example.com/audio.mp3" class="w-full bg-black/40 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div class="flex justify-between items-center pt-1">
+                            <label class="text-xs font-bold opacity-80 flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="bgMusicEnableToggle" class="w-4 h-4 rounded accent-amber-500">
+                                تشغيل الموسيقى تلقائياً في الخلفية
+                            </label>
+                            <button onclick="saveMusicSettings()" class="px-4 py-1.5 rounded-xl font-bold text-xs bg-amber-600 hover:bg-amber-500 transition text-white">حفظ الموسيقى</button>
+                        </div>
+                    </div>
+
+                    <h4 class="font-bold text-sm opacity-80">تخصيص الألوان والخطوط</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-bold">
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>لون خط العنوان الرئيسي</span><input type="color" id="titleColorPicker" value="#FFFFFF" onchange="updateThemeColor('--title-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>لون خط العنوان الفرعي</span><input type="color" id="subtitleColorPicker" value="#A0AEC0" onchange="updateThemeColor('--subtitle-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl sm:col-span-2"><span>نوع خط العنوان الفرعي</span><select id="subtitleFontSelect" onchange="updateThemeColor('--subtitle-font', this.value)" class="bg-black/40 border border-white/15 text-xs rounded-lg px-2 py-1 focus:outline-none"><option value="Cairo">Cairo (افتراضي)</option><option value="Tahoma">Tahoma</option><option value="Arial">Arial</option><option value="Georgia">Georgia (أنيق)</option></select></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>لون خط نص السؤال</span><input type="color" id="questionColorPicker" value="#FFFFFF" onchange="updateThemeColor('--question-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>خلفية صندوق نص السؤال الداخلي</span><input type="color" id="questionBoxColorPicker" value="#000000" onchange="updateThemeColor('--question-box-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>خلفية صندوق الأسئلة الرئيسي</span><input type="color" id="cardColorPicker" value="#25588C" onchange="updateThemeColor('--card-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>خلفية صندوق الصورة / الوسائط</span><input type="color" id="mediaBgColorPicker" value="#3B6F9E" onchange="updateThemeColor('--media-bg-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>خلفية أزرار الخيارات</span><input type="color" id="optionBgPicker" value="#1A3E66" onchange="updateThemeColor('--option-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>لون إطار أزرار الخيارات</span><input type="color" id="optionBorderPicker" value="#3A6B9C" onchange="updateThemeColor('--option-border', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>خلفية التطبيق العامة</span><input type="color" id="bgColorPicker" value="#0E2A47" onchange="updateThemeColor('--bg-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                        <div class="flex justify-between items-center bg-black/20 p-2.5 rounded-xl"><span>اللون المميز (Accent / زر التالي)</span><input type="color" id="accentColorPicker" value="#FF810B" onchange="updateThemeColor('--accent-color', this.value)" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Engine -->
+    <script>
+        let appConfig = JSON.parse(localStorage.getItem('masar_config')) || {
+            title: 'عارف',
+            subtitle: 'سفر وسياحه',
+            subtitleColor: '#A0AEC0',
+            subtitleFont: 'Cairo',
+            timerDuration: 15,
+            bgMusicUrl: '',
+            bgMusicEnabled: false,
+            faviconUrl: ''
+        };
+
+        let categories = JSON.parse(localStorage.getItem('masar_categories')) || [
+            { id: 'all', name: 'جميع المجالات', icon: 'fa-layer-group', subtitle: 'مسابقة الثقافة والتحدي الشاملة' },
+            { id: 'general', name: 'ثقافة عامة', icon: 'fa-globe', subtitle: 'تحدي الثقافة والمعلومات العامة' },
+            { id: 'history', name: 'تاريخ وآثار', icon: 'fa-landmark', subtitle: 'رحلة عبر التاريخ والحضارات' },
+            { id: 'science', name: 'علوم وتقنية', icon: 'fa-flask', subtitle: 'عالم العلوم والاستكشاف التقني' }
+        ];
+
+        let questions = JSON.parse(localStorage.getItem('masar_questions'));
+        if (!questions || questions.length === 0) {
+            questions = [
+                {
+                    category: 'general',
+                    type: 'puzzle',
+                    subtitle: 'سفر وسياحه',
+                    question: 'قم بتجميع قطع الصورة قبل انتهاء الوقت لتجميع معلم البندقية الشهير!',
+                    puzzleImg: 'https://cdn.getyourguide.com/image/format=auto%2Cfit=crop%2Cgravity=auto%2Cquality=60%2Cwidth=425%2Cheight=240/dam/BCC-2024-EXPLORER-GENOA-BEST-PLACES-TO-VISIT-HEADER_MOBILE.jpg',
+                    puzzleGrid: 3,
+                    options: [],
+                    correct: 0
+                }
+            ];
+            localStorage.setItem('masar_questions', JSON.stringify(questions));
+        }
+
+        let activeCategoryId = 'all';
+        let filteredQuestions = [...questions];
+        let currentQIndex = 0;
+        let selectedOptionIndex = null;
+        let timerSeconds = appConfig.timerDuration;
+        let timerInterval = null;
+        let autoNextTimeout = null;
+        let soundEnabled = true;
+        let isFocusMode = false;
+        let selectedPuzzlePiece = null;
+        const letters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح', 'ط', 'ي'];
+
+        function verifyAdminAccess() {
+            let pass = prompt("أدخل كلمة مرور لوحة التحكم الخاصة بك:");
+            if (pass === "1234") {
+                openAdminModal();
+            } else if (pass !== null) {
+                alert("كلمة المرور غير صحيحة!");
+            }
+        }
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        function initAudio() { if (!audioCtx) audioCtx = new AudioContext(); }
+        
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            if (type === 'tick') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'correct') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(659.25, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'reveal_chime') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1);
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            } else if (type === 'wrong') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        function setupFavicon() {
+            const faviconEl = document.getElementById('dynamicFavicon');
+            if (appConfig.faviconUrl && appConfig.faviconUrl.trim() !== '') {
+                faviconEl.href = appConfig.faviconUrl.trim();
+            } else {
+                faviconEl.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/svgs/solid/layer-group.svg';
+            }
+        }
+
+        function saveFaviconSettings() {
+            appConfig.faviconUrl = document.getElementById('faviconUrlInput').value.trim();
+            localStorage.setItem('masar_config', JSON.stringify(appConfig));
+            setupFavicon();
+            alert('تم حفظ وتحديث أيقونة الموقع بنجاح!');
+        }
+
+        function removeFavicon() {
+            appConfig.faviconUrl = '';
+            document.getElementById('faviconUrlInput').value = '';
+            localStorage.setItem('masar_config', JSON.stringify(appConfig));
+            setupFavicon();
+            alert('تم إزالة الأيقونة والعودة للأيقونة الافتراضية!');
+        }
+
+        function setupBgMusic() {
+            const player = document.getElementById('bgMusicPlayer');
+            if (appConfig.bgMusicUrl && appConfig.bgMusicUrl.trim() !== '') {
+                player.src = appConfig.bgMusicUrl.trim();
+                if (appConfig.bgMusicEnabled && soundEnabled) {
+                    player.play().catch(e => console.log('يتطلب التفاعل لبدء الصوت'));
+                } else {
+                    player.pause();
+                }
+            } else {
+                player.pause();
+            }
+        }
+
+        function saveMusicSettings() {
+            appConfig.bgMusicUrl = document.getElementById('bgMusicUrlInput').value;
+            appConfig.bgMusicEnabled = document.getElementById('bgMusicEnableToggle').checked;
+            localStorage.setItem('masar_config', JSON.stringify(appConfig));
+            setupBgMusic();
+            alert('تم حفظ إعدادات الموسيقى بنجاح!');
+        }
+
+        function filterQuestions() {
+            if (activeCategoryId === 'all') {
+                filteredQuestions = [...questions];
+            } else {
+                filteredQuestions = questions.filter(q => q.category === activeCategoryId);
+            }
+            currentQIndex = 0;
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            clearInterval(timerInterval);
+            clearTimeout(autoNextTimeout);
+            selectedOptionIndex = null;
+            selectedPuzzlePiece = null;
+            timerSeconds = appConfig.timerDuration;
+            document.getElementById('timerText').innerText = timerSeconds;
+
+            if (filteredQuestions.length === 0) {
+                document.getElementById('questionText').innerText = 'لا توجد أسئلة في هذا المجال حالياً.';
+                document.getElementById('optionsContainer').innerHTML = '';
+                document.getElementById('quizMediaColumn').classList.add('hidden');
+                return;
+            }
+
+            if (currentQIndex >= filteredQuestions.length) currentQIndex = 0;
+            if (currentQIndex < 0) currentQIndex = filteredQuestions.length - 1;
+
+            const q = filteredQuestions[currentQIndex];
+            const qType = q.type || 'mcq';
+
+            document.getElementById('qNumberBadge').innerText = currentQIndex + 1;
+            document.getElementById('questionText').innerText = q.question;
+            document.getElementById('appSubTitle').innerText = q.subtitle || appConfig.subtitle;
+
+            const mediaBox = document.getElementById('quizMediaColumn');
+            const mediaDisplay = document.getElementById('questionMediaDisplay');
+            mediaDisplay.innerHTML = '';
+
+            const optContainer = document.getElementById('optionsContainer');
+            optContainer.innerHTML = '';
+
+            if (qType === 'puzzle') {
+                mediaBox.classList.add('hidden');
+                mediaBox.classList.remove('flex');
+                optContainer.className = 'w-full';
+
+                setupPuzzleGame(q, optContainer);
+            } else {
+                const hasMedia = q.media && q.media.length > 0 && q.media[0].url.trim() !== '';
+
+                if (hasMedia) {
+                    mediaBox.classList.remove('hidden');
+                    mediaBox.classList.add('flex');
+                    q.media.forEach(m => {
+                        const url = m.url;
+                        if (url.endsWith('.mp4') || url.includes('mp4')) {
+                            mediaDisplay.innerHTML = `<video src="${url}" controls autoplay class="media-item-fit"></video>`;
+                        } else if (url.endsWith('.mp3') || url.endsWith('.ogg') || url.includes('audio')) {
+                            mediaDisplay.innerHTML = `
+                                <div class="flex flex-col items-center justify-center gap-3 w-full h-full p-4">
+                                    <i class="fa-solid fa-music text-4xl" style="color: var(--accent-color);"></i>
+                                    <audio src="${url}" controls autoplay class="w-full"></audio>
+                                </div>`;
+                        } else {
+                            const img = document.createElement('img');
+                            img.src = url;
+                            img.className = 'media-item-fit';
+                            mediaDisplay.appendChild(img);
+                        }
+                    });
+                } else {
+                    mediaBox.classList.add('hidden');
+                    mediaBox.classList.remove('flex');
+                }
+
+                if (qType === 'media_reveal') {
+                    optContainer.className = 'grid grid-cols-1 gap-3.5 w-full';
+                    const revealBox = document.createElement('div');
+                    revealBox.id = 'revealAnswerBox';
+                    revealBox.className = 'w-full p-4 rounded-2xl glass-card text-center font-bold text-base md:text-lg opacity-80 border border-white/20';
+                    revealBox.innerHTML = '<i class="fa-solid fa-hourglass-half ml-2" style="color: var(--accent-color);"></i> ستظهر الإجابة عند انتهاء الوقت';
+                    optContainer.appendChild(revealBox);
+                } else if (qType === 'fill') {
+                    optContainer.className = 'grid grid-cols-1 gap-3.5 w-full';
+                    const fillBox = document.createElement('div');
+                    fillBox.className = 'w-full p-4 rounded-2xl glass-card text-center font-bold text-base md:text-lg border border-white/20';
+                    fillBox.innerHTML = `
+                        <div class="opacity-70 text-xs mb-1">النمط: إكمال الفراغ / إجابة كتابية</div>
+                        <div class="text-amber-300 text-xl font-black">${q.options[0] || '...'}</div>
+                    `;
+                    optContainer.appendChild(fillBox);
+                } else if (qType === 'truefalse') {
+                    optContainer.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 w-full';
+                    const tfOptions = ['صح', 'خطأ'];
+                    tfOptions.forEach((optText, idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'glass-option w-full rounded-2xl p-3 sm:p-3.5 flex items-center gap-3.5 text-right cursor-pointer';
+                        btn.onclick = () => selectOption(idx);
+                        btn.innerHTML = `
+                            <div class="option-letter text-white text-base"><span>${letters[idx]}</span></div>
+                            <span class="font-bold text-sm sm:text-base md:text-lg flex-1 text-right">${optText}</span>
+                        `;
+                        optContainer.appendChild(btn);
+                    });
+                } else {
+                    if (!hasMedia && q.options.length === 4) {
+                        optContainer.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4 w-full';
+                    } else {
+                        optContainer.className = 'grid grid-cols-1 gap-3.5 w-full';
+                    }
+
+                    q.options.forEach((optText, idx) => {
+                        const btn = document.createElement('button');
+                        btn.className = 'glass-option w-full rounded-2xl p-3 sm:p-3.5 flex items-center gap-3.5 text-right cursor-pointer';
+                        btn.onclick = () => selectOption(idx);
+                        btn.innerHTML = `
+                            <div class="option-letter text-white text-base"><span>${letters[idx] || (idx+1)}</span></div>
+                            <span class="font-bold text-sm sm:text-base md:text-lg flex-1 text-right">${optText}</span>
+                        `;
+                        optContainer.appendChild(btn);
+                    });
+                }
+            }
+
+            const total = filteredQuestions.length;
+            const progress = total > 0 ? ((currentQIndex + 1) / total) * 100 : 0;
+            document.getElementById('quizProgressBar').style.width = progress + '%';
+            document.getElementById('prevBtn').disabled = currentQIndex === 0;
+
+            startTimer();
+        }
+
+        function setupPuzzleGame(q, container) {
+            const gridSize = parseInt(q.puzzleGrid) || 3;
+            const imgSrc = q.puzzleImg || '';
+            const totalPieces = gridSize * gridSize;
+
+            const puzzleWrapper = document.createElement('div');
+            puzzleWrapper.className = 'flex flex-col md:flex-row items-center justify-center gap-6 w-full py-2';
+
+            const boardContainer = document.createElement('div');
+            boardContainer.className = 'flex flex-col items-center gap-2';
+            boardContainer.innerHTML = `<span class="text-xs font-bold opacity-80"><i class="fa-solid fa-grid-2"></i> شبكة التجميع</span>`;
+            
+            const board = document.createElement('div');
+            board.id = 'puzzleBoard';
+            board.className = 'grid gap-1 bg-black/40 p-2 rounded-2xl border border-white/20 shadow-inner';
+            board.style.gridTemplateColumns = `repeat(${gridSize}, minmax(0, 1fr))`;
+            board.style.width = '280px';
+            board.style.height = '280px';
+
+            for (let i = 0; i < totalPieces; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'puzzle-slot w-full h-full';
+                slot.dataset.slotIndex = i;
+
+                slot.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    slot.classList.add('drag-over');
+                });
+                slot.addEventListener('dragleave', () => slot.classList.remove('drag-over'));
+                slot.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    slot.classList.remove('drag-over');
+                    const pieceIndex = e.dataTransfer.getData('text/plain');
+                    if (pieceIndex !== '') {
+                        placePieceInSlot(parseInt(pieceIndex), slot);
+                    }
+                });
+
+                slot.addEventListener('click', () => {
+                    if (selectedPuzzlePiece !== null) {
+                        placePieceInSlot(selectedPuzzlePiece, slot);
+                    }
+                });
+
+                board.appendChild(slot);
+            }
+            boardContainer.appendChild(board);
+
+            const bankContainer = document.createElement('div');
+            bankContainer.className = 'flex flex-col items-center gap-2';
+            bankContainer.innerHTML = `<span class="text-xs font-bold opacity-80"><i class="fa-solid fa-puzzle-piece"></i> القطع المبعثرة</span>`;
+
+            const pieceBank = document.createElement('div');
+            pieceBank.id = 'puzzleBank';
+            pieceBank.className = 'grid gap-2 bg-black/30 p-3 rounded-2xl border border-white/15 overflow-y-auto max-h-[290px]';
+            pieceBank.style.gridTemplateColumns = `repeat(${gridSize}, minmax(0, 1fr))`;
+            pieceBank.style.width = '280px';
+
+            let pieceIndices = Array.from({ length: totalPieces }, (_, i) => i);
+            pieceIndices.sort(() => Math.random() - 0.5);
+
+            pieceIndices.forEach((pIdx) => {
+                const piece = document.createElement('div');
+                piece.className = 'puzzle-piece aspect-square w-full h-full';
+                piece.draggable = true;
+                piece.dataset.pieceIndex = pIdx;
+
+                const row = Math.floor(pIdx / gridSize);
+                const col = pIdx % gridSize;
+                const posX = (col / (gridSize - 1)) * 100;
+                const posY = (row / (gridSize - 1)) * 100;
+
+                piece.style.backgroundImage = `url('${imgSrc}')`;
+                piece.style.backgroundSize = `${gridSize * 100}% ${gridSize * 100}%`;
+                piece.style.backgroundPosition = `${posX}% ${posY}%`;
+
+                piece.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', pIdx);
+                });
+
+                piece.addEventListener('click', () => {
+                    document.querySelectorAll('.puzzle-piece').forEach(p => p.classList.remove('selected-piece'));
+                    selectedPuzzlePiece = pIdx;
+                    piece.classList.add('selected-piece');
+                });
+
+                pieceBank.appendChild(piece);
+            });
+            bankContainer.appendChild(pieceBank);
+
+            puzzleWrapper.appendChild(boardContainer);
+            puzzleWrapper.appendChild(bankContainer);
+            container.appendChild(puzzleWrapper);
+        }
+
+        function placePieceInSlot(pieceIdx, slot) {
+            const pieceEl = document.querySelector(`.puzzle-piece[data-piece-index="${pieceIdx}"]`);
+            if (!pieceEl) return;
+
+            if (slot.children.length > 0) {
+                document.getElementById('puzzleBank').appendChild(slot.children[0]);
+            }
+
+            slot.appendChild(pieceEl);
+            pieceEl.classList.remove('selected-piece');
+            selectedPuzzlePiece = null;
+            playSound('tick');
+
+            checkPuzzleCompletion();
+        }
+
+        function checkPuzzleCompletion() {
+            const slots = document.querySelectorAll('#puzzleBoard .puzzle-slot');
+            let isComplete = true;
+
+            slots.forEach(slot => {
+                const slotIdx = parseInt(slot.dataset.slotIndex);
+                if (slot.children.length === 0) {
+                    isComplete = false;
+                } else {
+                    const pieceIdx = parseInt(slot.children[0].dataset.pieceIndex);
+                    if (slotIdx !== pieceIdx) isComplete = false;
+                }
+            });
+
+            if (isComplete) {
+                clearInterval(timerInterval);
+                playSound('correct');
+                const board = document.getElementById('puzzleBoard');
+                board.style.borderColor = '#10B981';
+                board.style.boxShadow = '0 0 25px rgba(16, 185, 129, 0.6)';
+                
+                autoNextTimeout = setTimeout(() => {
+                    transitionToNext();
+                }, 3000);
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timerSeconds--;
+                document.getElementById('timerText').innerText = timerSeconds;
+                
+                if (timerSeconds > 0) {
+                    playSound('tick');
+                } else {
+                    clearInterval(timerInterval);
+                    revealCorrectAnswer();
+                }
+            }, 1000);
+        }
+
+        function selectOption(idx) {
+            if (selectedOptionIndex !== null) return;
+            selectedOptionIndex = idx;
+            clearInterval(timerInterval);
+            const q = filteredQuestions[currentQIndex];
+            const optButtons = document.querySelectorAll('#optionsContainer button');
+
+            optButtons.forEach((btn, i) => {
+                if (i === q.correct) {
+                    btn.style.backgroundColor = 'rgba(16, 185, 129, 0.4)';
+                    btn.style.borderColor = '#10B981';
+                } else if (i === selectedOptionIndex) {
+                    btn.style.backgroundColor = 'rgba(239, 68, 68, 0.4)';
+                    btn.style.borderColor = '#EF4444';
+                }
+            });
+
+            if (idx === q.correct) {
+                playSound('correct');
+            } else {
+                playSound('wrong');
+            }
+
+            autoNextTimeout = setTimeout(() => {
+                transitionToNext();
+            }, 3000);
+        }
+
+        function revealCorrectAnswer() {
+            const q = filteredQuestions[currentQIndex];
+            const qType = q.type || 'mcq';
+
+            if (qType === 'puzzle') {
+                playSound('reveal_chime');
+                const gridSize = parseInt(q.puzzleGrid) || 3;
+                const slots = document.querySelectorAll('#puzzleBoard .puzzle-slot');
+
+                slots.forEach(slot => {
+                    const slotIdx = parseInt(slot.dataset.slotIndex);
+                    const piece = document.querySelector(`.puzzle-piece[data-piece-index="${slotIdx}"]`);
+                    if (piece) {
+                        slot.appendChild(piece);
+                    }
+                });
+
+                const board = document.getElementById('puzzleBoard');
+                board.style.borderColor = '#FF810B';
+                board.style.boxShadow = '0 0 25px rgba(255, 129, 11, 0.6)';
+            } else if (qType === 'media_reveal') {
+                playSound('reveal_chime');
+                const revealBox = document.getElementById('revealAnswerBox');
+                if (revealBox) {
+                    revealBox.style.backgroundColor = 'rgba(16, 185, 129, 0.4)';
+                    revealBox.style.borderColor = '#10B981';
+                    revealBox.innerHTML = `<i class="fa-solid fa-circle-check ml-2 text-emerald-300"></i> الإجابة: <span class="text-white font-extrabold">${q.options[0] || 'انتهى الوقت'}</span>`;
+                }
+            } else {
+                playSound('reveal_chime');
+                if (selectedOptionIndex !== null) return;
+                const optButtons = document.querySelectorAll('#optionsContainer button');
+                optButtons.forEach((btn, i) => {
+                    if (i === q.correct) {
+                        btn.style.backgroundColor = 'rgba(16, 185, 129, 0.4)';
+                        btn.style.borderColor = '#10B981';
+                    }
+                });
+            }
+
+            autoNextTimeout = setTimeout(() => {
+                transitionToNext();
+            }, 4000);
+        }
+
+        function transitionToNext() {
+            const card = document.getElementById('questionCard');
+            card.classList.add('fade-out');
+            setTimeout(() => {
+                currentQIndex++;
+                if (currentQIndex >= filteredQuestions.length) currentQIndex = 0;
+                loadQuestion();
+                card.classList.remove('fade-out');
+            }, 350);
+        }
+
+        function nextQuestion() {
+            transitionToNext();
+        }
+
+        function prevQuestion() {
+            const card = document.getElementById('questionCard');
+            card.classList.add('fade-out');
+            setTimeout(() => {
+                currentQIndex--;
+                if (currentQIndex < 0) currentQIndex = 0;
+                loadQuestion();
+                card.classList.remove('fade-out');
+            }, 350);
+        }
+
+        function resetCurrentQuestion() {
+            loadQuestion();
+        }
+
+        function toggleFocusMode() {
+            isFocusMode = !isFocusMode;
+            
+            const controlsGroup = document.getElementById('topControlsGroup');
+            if (controlsGroup) {
+                controlsGroup.style.display = isFocusMode ? 'none' : 'flex';
+            }
+            
+            const bottomControlBar = document.getElementById('bottomControlBar');
+            if (bottomControlBar) {
+                bottomControlBar.style.display = isFocusMode ? 'none' : 'flex';
+            }
+
+            const footer = document.getElementById('appFooter');
+            if (footer) {
+                footer.style.display = isFocusMode ? 'none' : 'block';
+            }
+        }
+
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                if (isFocusMode) {
+                    toggleFocusMode();
+                }
+                closeCategoryModal();
+                closeAdminModal();
+            }
+        });
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('audioBtn');
+            btn.innerHTML = soundEnabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark opacity-50"></i>';
+            
+            const player = document.getElementById('bgMusicPlayer');
+            if (soundEnabled && appConfig.bgMusicEnabled && appConfig.bgMusicUrl) {
+                player.play();
+            } else {
+                player.pause();
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        function openCategoryModal() {
+            const list = document.getElementById('categoryList');
+            list.innerHTML = '';
+            categories.forEach(cat => {
+                const isSelected = activeCategoryId === cat.id;
+                const div = document.createElement('div');
+                div.className = `flex items-center justify-between p-3 rounded-2xl cursor-pointer transition ${isSelected ? 'bg-white/20 border border-white/30' : 'hover:bg-white/10'}`;
+                div.onclick = () => {
+                    activeCategoryId = cat.id;
+                    document.getElementById('currentCategoryText').innerText = cat.name;
+                    document.getElementById('currentCategoryIcon').className = `fa-solid ${cat.icon}`;
+                    closeCategoryModal();
+                    filterQuestions();
+                };
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-black/30 flex items-center justify-center text-amber-400"><i class="fa-solid ${cat.icon}"></i></div>
+                        <div>
+                            <h4 class="font-bold text-sm">${cat.name}</h4>
+                            <span class="text-xs opacity-70">${cat.subtitle || ''}</span>
+                        </div>
+                    </div>
+                    ${isSelected ? '<i class="fa-solid fa-check text-amber-400"></i>' : ''}
+                `;
+                list.appendChild(div);
+            });
+            document.getElementById('categoryModal').classList.remove('hidden');
+        }
+
+        function closeCategoryModal() {
+            document.getElementById('categoryModal').classList.add('hidden');
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.remove('hidden');
+            switchTab('settingsTab');
+            renderAdminQuestions();
+            renderAdminCategories();
+            populateCategoryDropdown();
+            
+            document.getElementById('faviconUrlInput').value = appConfig.faviconUrl || '';
+            document.getElementById('bgMusicUrlInput').value = appConfig.bgMusicUrl || '';
+            document.getElementById('bgMusicEnableToggle').checked = appConfig.bgMusicEnabled || false;
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.add('hidden');
+            localStorage.setItem('masar_config', JSON.stringify(appConfig));
+            localStorage.setItem('masar_questions', JSON.stringify(questions));
+            localStorage.setItem('masar_categories', JSON.stringify(categories));
+            filterQuestions();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('[id^="btn-"]').forEach(el => el.classList.remove('border-amber-400', 'text-amber-400'));
+            document.getElementById(tabId).classList.remove('hidden');
+            document.getElementById('btn-' + tabId).classList.add('border-amber-400', 'text-amber-400');
+        }
+
+        function saveGeneralSettings() {
+            appConfig.title = document.getElementById('appTitleInput').value;
+            appConfig.subtitle = document.getElementById('appSubTitleInput').value;
+            appConfig.timerDuration = parseInt(document.getElementById('timerDurationInput').value) || 15;
+            document.getElementById('appMainTitle').innerText = appConfig.title;
+            document.getElementById('appSubTitle').innerText = appConfig.subtitle;
+            alert('تم حفظ الإعدادات بنجاح!');
+        }
+
+        function populateCategoryDropdown() {
+            const select = document.getElementById('qCategorySelect');
+            select.innerHTML = '';
+            categories.forEach(cat => {
+                if (cat.id === 'all') return;
+                const opt = document.createElement('option');
+                opt.value = cat.id;
+                opt.innerText = cat.name;
+                select.appendChild(opt);
+            });
+        }
+
+        function onQuestionTypeChange() {
+            const type = document.getElementById('qTypeSelect').value;
+            const optionsWrapper = document.getElementById('optionsSectionWrapper');
+            const mediaWrapper = document.getElementById('mediaSectionWrapper');
+            const puzzleWrapper = document.getElementById('puzzleSectionWrapper');
+            const correctContainer = document.getElementById('correctAnswerInputContainer');
+            const correctSection = document.getElementById('correctAnswerSection');
+
+            optionsWrapper.style.display = 'block';
+            mediaWrapper.style.display = 'block';
+            puzzleWrapper.style.display = 'none';
+            correctSection.style.display = 'block';
+
+            if (type === 'puzzle') {
+                optionsWrapper.style.display = 'none';
+                mediaWrapper.style.display = 'none';
+                puzzleWrapper.style.display = 'block';
+                correctSection.style.display = 'none';
+            } else if (type === 'truefalse') {
+                optionsWrapper.style.display = 'none';
+                correctContainer.innerHTML = `
+                    <select id="qCorrectSelect" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                        <option value="0">أ - صح</option>
+                        <option value="1">ب - خطأ</option>
+                    </select>
+                `;
+            } else if (type === 'fill' || type === 'media_reveal') {
+                optionsWrapper.style.display = 'none';
+                correctContainer.innerHTML = `
+                    <input type="text" id="qCorrectText" placeholder="${type === 'fill' ? 'أدخل الإجابة الصحيحة للفراغ...' : 'أدخل الإجابة التي ستظهر بعد انتهاء الوقت...'}" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400">
+                `;
+            } else {
+                updateCorrectAnswerDropdown();
+            }
+        }
+
+        function addMediaInputRow(url = '') {
+            const container = document.getElementById('mediaInputsContainer');
+            const div = document.createElement('div');
+            div.className = 'flex gap-2 items-center';
+            div.innerHTML = `
+                <select class="media-type-sel bg-black/40 border border-white/15 text-xs rounded-xl px-2 py-1.5 focus:outline-none">
+                    <option value="url">رابط مباشر (صورة/فيديو/صوت)</option>
+                </select>
+                <input type="text" placeholder="ضع رابط الوسائط المباشر هنا..." value="${url}" class="media-url-input flex-1 bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none">
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-400 hover:text-red-300 p-1"><i class="fa-solid fa-trash"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        function addOptionInputRow(val = '') {
+            const container = document.getElementById('optionsInputsContainer');
+            const index = container.children.length;
+            const letter = letters[index] || (index + 1);
+            const div = document.createElement('div');
+            div.className = 'flex gap-2 items-center option-row';
+            div.innerHTML = `
+                <span class="w-8 h-8 rounded-lg bg-black/30 flex items-center justify-center font-bold text-xs flex-shrink-0">${letter}</span>
+                <input type="text" placeholder="أدخل نص الخيار..." value="${val}" class="option-text-input flex-1 bg-black/40 border border-white/15 rounded-xl px-3 py-1.5 text-xs focus:outline-none" oninput="updateCorrectAnswerDropdown()">
+                <button type="button" onclick="removeOptionInputRow(this)" class="text-red-400 hover:text-red-300 p-1"><i class="fa-solid fa-trash"></i></button>
+            `;
+            container.appendChild(div);
+            updateCorrectAnswerDropdown();
+        }
+
+        function removeOptionInputRow(btn) {
+            const container = document.getElementById('optionsInputsContainer');
+            if (container.children.length <= 2) {
+                alert('يجب أن يحتوي السؤال على خيارين على الأقل.');
+                return;
+            }
+            btn.parentElement.remove();
+            Array.from(container.children).forEach((row, idx) => {
+                row.querySelector('span').innerText = letters[idx] || (idx + 1);
+            });
+            updateCorrectAnswerDropdown();
+        }
+
+        function updateCorrectAnswerDropdown(selectedVal = 0) {
+            const type = document.getElementById('qTypeSelect').value;
+            if (type !== 'mcq') return;
+            const correctContainer = document.getElementById('correctAnswerInputContainer');
+            correctContainer.innerHTML = `<select id="qCorrectSelect" class="w-full bg-black/30 border border-white/15 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-amber-400"></select>`;
+            const select = document.getElementById('qCorrectSelect');
+            const rows = document.querySelectorAll('#optionsInputsContainer .option-row');
+            select.innerHTML = '';
+            rows.forEach((row, idx) => {
+                const optText = row.querySelector('.option-text-input').value || `الخيار (${letters[idx] || (idx+1)})`;
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.innerText = `الخيار (${letters[idx] || (idx+1)}): ${optText}`;
+                if (idx === selectedVal) opt.selected = true;
+                select.appendChild(opt);
+            });
+        }
+
+        function resetQuestionForm() {
+            document.getElementById('editQIndex').value = '-1';
+            document.getElementById('qTypeSelect').value = 'mcq';
+            document.getElementById('qSubtitleInput').value = '';
+            document.getElementById('qTextInput').value = '';
+            document.getElementById('puzzleImgUrlInput').value = '';
+            document.getElementById('mediaInputsContainer').innerHTML = '';
+            document.getElementById('optionsInputsContainer').innerHTML = '';
+            onQuestionTypeChange();
+            addOptionInputRow('الخيار الأول');
+            addOptionInputRow('الخيار الثاني');
+            addOptionInputRow('الخيار الثالث');
+            addOptionInputRow('الخيار الرابع');
+        }
+
+        function saveQuestion() {
+            const editIndex = parseInt(document.getElementById('editQIndex').value);
+            const category = document.getElementById('qCategorySelect').value;
+            const type = document.getElementById('qTypeSelect').value;
+            const subtitle = document.getElementById('qSubtitleInput').value;
+            const question = document.getElementById('qTextInput').value;
+
+            let options = [];
+            let correct = 0;
+            let puzzleImg = '';
+            let puzzleGrid = 3;
+
+            if (type === 'puzzle') {
+                puzzleImg = document.getElementById('puzzleImgUrlInput').value.trim();
+                puzzleGrid = parseInt(document.getElementById('puzzleGridSizeSelect').value) || 3;
+            } else if (type === 'truefalse') {
+                options = ['صح', 'خطأ'];
+                correct = parseInt(document.getElementById('qCorrectSelect').value);
+            } else if (type === 'fill' || type === 'media_reveal') {
+                const textVal = document.getElementById('qCorrectText').value.trim();
+                options = [textVal];
+                correct = 0;
+            } else {
+                document.querySelectorAll('#optionsInputsContainer .option-text-input').forEach(input => {
+                    if (input.value.trim()) {
+                        options.push(input.value.trim());
+                    }
+                });
+                correct = parseInt(document.getElementById('qCorrectSelect').value) || 0;
+            }
+
+            if (!question) {
+                alert('الرجاء إدخال نص السؤال.');
+                return;
+            }
+
+            const media = [];
+            document.querySelectorAll('#mediaInputsContainer > div').forEach(row => {
+                const url = row.querySelector('.media-url-input').value;
+                if (url.trim()) media.push({ type: 'url', url: url.trim() });
+            });
+
+            const qObj = { category, type, subtitle, question, media, options, correct, puzzleImg, puzzleGrid };
+
+            if (editIndex === -1) {
+                questions.push(qObj);
+            } else {
+                questions[editIndex] = qObj;
+            }
+
+            resetQuestionForm();
+            renderAdminQuestions();
+            alert('تم حفظ السؤال بنجاح!');
+        }
+
+        function renderAdminQuestions() {
+            const list = document.getElementById('adminQuestionsList');
+            list.innerHTML = '';
+            questions.forEach((q, idx) => {
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-black/20 p-2.5 rounded-xl text-xs';
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 truncate flex-1 ml-2">
+                        <span class="font-bold opacity-60">${idx + 1}.</span>
+                        <span class="truncate">${q.question}</span>
+                        <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-amber-300">${q.type || 'mcq'}</span>
+                    </div>
+                    <div class="flex gap-1.5 flex-shrink-0">
+                        <button onclick="editQuestion(${idx})" class="p-1.5 rounded bg-blue-600/50 hover:bg-blue-600 text-white"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteQuestion(${idx})" class="p-1.5 rounded bg-red-600/50 hover:bg-red-600 text-white"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function editQuestion(idx) {
+            const q = questions[idx];
+            document.getElementById('editQIndex').value = idx;
+            document.getElementById('qCategorySelect').value = q.category;
+            document.getElementById('qTypeSelect').value = q.type || 'mcq';
+            onQuestionTypeChange();
+
+            document.getElementById('qSubtitleInput').value = q.subtitle || '';
+            document.getElementById('qTextInput').value = q.question;
+
+            if (q.type === 'puzzle') {
+                document.getElementById('puzzleImgUrlInput').value = q.puzzleImg || '';
+                document.getElementById('puzzleGridSizeSelect').value = q.puzzleGrid || 3;
+            }
+
+            document.getElementById('mediaInputsContainer').innerHTML = '';
+            if (q.media) {
+                q.media.forEach(m => addMediaInputRow(m.url));
+            }
+
+            if (q.type === 'truefalse') {
+                document.getElementById('qCorrectSelect').value = q.correct;
+            } else if (q.type === 'fill' || q.type === 'media_reveal') {
+                document.getElementById('qCorrectText').value = q.options[0] || '';
+            } else if (q.type !== 'puzzle') {
+                document.getElementById('optionsInputsContainer').innerHTML = '';
+                q.options.forEach(optText => {
+                    addOptionInputRow(optText);
+                });
+                updateCorrectAnswerDropdown(q.correct);
+            }
+        }
+
+        function deleteQuestion(idx) {
+            if (confirm('هل أنت متأكد من حذف هذا السؤال؟')) {
+                questions.splice(idx, 1);
+                renderAdminQuestions();
+            }
+        }
+
+        function addCategory() {
+            const name = document.getElementById('newCatName').value;
+            const icon = document.getElementById('newCatIcon').value || 'fa-folder';
+            const subtitle = document.getElementById('newCatSubtitle').value;
+            if (!name) return;
+            const id = 'cat_' + Date.now();
+            categories.push({ id, name, icon, subtitle });
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatSubtitle').value = '';
+            renderAdminCategories();
+            populateCategoryDropdown();
+        }
+
+        function renderAdminCategories() {
+            const list = document.getElementById('adminCategoriesList');
+            list.innerHTML = '';
+            categories.forEach((cat, idx) => {
+                if (cat.id === 'all') return;
+                const div = document.createElement('div');
+                div.className = 'flex items-center justify-between bg-black/20 p-2.5 rounded-xl text-xs';
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid ${cat.icon} text-amber-400"></i>
+                        <span class="font-bold">${cat.name}</span>
+                    </div>
+                    <button onclick="deleteCategory(${idx})" class="p-1 rounded bg-red-600/50 hover:bg-red-600 text-white"><i class="fa-solid fa-trash"></i></button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function deleteCategory(idx) {
+            if (confirm('حذف المجال سيزيل تصنيفه. هل أنت متأكد؟')) {
+                categories.splice(idx, 1);
+                renderAdminCategories();
+                populateCategoryDropdown();
+            }
+        }
+
+        function updateThemeColor(property, value) {
+            document.documentElement.style.setProperty(property, value);
+        }
+
+        window.onload = function() {
+            document.getElementById('appMainTitle').innerText = appConfig.title;
+            document.getElementById('appSubTitle').innerText = appConfig.subtitle;
+            document.getElementById('timerDurationInput').value = appConfig.timerDuration;
+            
+            setupFavicon();
+            setupBgMusic();
+            onQuestionTypeChange();
+            addOptionInputRow('الخيار الأول');
+            addOptionInputRow('الخيار الثاني');
+            addOptionInputRow('الخيار الثالث');
+            addOptionInputRow('الخيار الرابع');
+            
+            filterQuestions();
+        };
+    </script>
+</body>
+</html>
